@@ -1,0 +1,33 @@
+# templates/app_financas/transacao_list.html
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Transações</h1>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Data</th>
+            <th>Tipo</th>
+            <th>Descrição</th>
+            <th>Categoria</th>
+            <th>Valor</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for transacao in transacoes %}
+        <tr>
+            <td>{{ transacao.data }}</td>
+            <td>{{ transacao.get_tipo_display }}</td>
+            <td>{{ transacao.descricao }}</td>
+            <td>{{ transacao.categoria.nome }}</td>
+            <td>R$ {{ transacao.valor|floatformat:2 }}</td>
+             <td>
+                <a href="{% url 'transacao_update' transacao.id %}" class="btn btn-sm btn-primary">Editar</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<a href="{% url 'transacao_create' %}" class="btn btn-success">Nova Transação</a>
+{% endblock %}

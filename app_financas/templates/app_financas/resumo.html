@@ -1,0 +1,325 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Finanças Pessoais</h1>
+
+    <div class="row">
+        <!-- Coluna para Resumo Financeiro -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">Resumo Financeiro - {{ mes_selecionado }}/{{ ano_selecionado }}</h2>
+
+                    <form method="get" class="row g-3 align-items-end mb-4">
+                        <div class="col-auto">
+                            <label for="mes" class="form-label">Mês</label>
+                            <select name="mes" id="mes" class="form-select">
+                                {% for m in meses %}
+                                    <option value="{{ m }}" {% if m == mes_selecionado %}selected{% endif %}>{{ m }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <label for="ano" class="form-label">Ano</label>
+                            <select name="ano" id="ano" class="form-select">
+                                {% for y in anos %}
+                                    <option value="{{ y }}" {% if y == ano_selecionado %}selected{% endif %}>{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-primary">Filtrar</button>
+                        </div>
+                    </form>
+
+                    <h3>Resumo</h3>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item text-success">🟢 Entrou: R$ {{ entradas|floatformat:2 }}</li>
+                        <li class="list-group-item text-danger">🔴 Saiu: R$ {{ saidas|floatformat:2 }}</li>
+                        <li class="list-group-item"><strong>Sobrou: R$ {{ saldo|floatformat:2 }}</strong></li>
+                        <li class="list-group-item">Acumulado: R$ {{ acumulado|floatformat:2 }}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna para Saldos das Contas -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">Saldos das Contas</h2>
+
+                    <form id="saldoForm">
+                        <div class="mb-3">
+                            <label for="saldo_bradesco" class="form-label">Saldo Conta Bradesco</label>
+                            <input type="number" step="0.01" class="form-control" id="saldo_bradesco" name="saldo_bradesco" value="{{ latest_saldos_faturas.saldo_bradesco|default_if_none:'' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="saldo_itau" class="form-label">Saldo Conta Itaú</label>
+                            <input type="number" step="0.01" class="form-control" id="saldo_itau" name="saldo_itau" value="{{ latest_saldos_faturas.saldo_itau|default_if_none:'' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="saldo_inter" class="form-label">Saldo Conta Inter</label>
+                            <input type="number" step="0.01" class="form-control" id="saldo_inter" name="saldo_inter" value="{{ latest_saldos_faturas.saldo_inter|default_if_none:'' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="saldo_total" class="form-label"><strong>Saldo Total</strong></label>
+                            <input type="number" step="0.01" class="form-control" id="saldo_total" name="saldo_total" readonly>
+                            <button id="btnSalvar" class="btn btn-primary mt-3">Salvar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna para Fatura Cartões de Crédito -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">Fatura Cartões de Crédito</h2>
+
+                    <form id="faturaForm">
+                        <div class="mb-3">
+                            <label for="fatura_bradesco" class="form-label">Fatura Cartão Bradesco</label>
+                            <input type="number" step="0.01" class="form-control" id="fatura_bradesco" name="fatura_bradesco" value="{{ latest_saldos_faturas.fatura_bradesco|default_if_none:'' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="fatura_itau" class="form-label">Fatura Cartão Itaú</label>
+                            <input type="number" step="0.01" class="form-control" id="fatura_itau" name="fatura_itau" value="{{ latest_saldos_faturas.fatura_itau|default_if_none:'' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="fatura_inter" class="form-label">Fatura Cartão Inter</label>
+                            <input type="number" step="0.01" class="form-control" id="fatura_inter" name="fatura_inter" value="{{ latest_saldos_faturas.fatura_inter|default_if_none:'' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="fatura_total" class="form-label"><strong>Total Faturas</strong></label>
+                            <input type="number" step="0.01" class="form-control" id="fatura_total" name="fatura_total" readonly>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Coluna para Comparativo de Saldos -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">Comparativo de Saldos</h2>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Descrição</th>
+                                <th>Valor (R$)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Saldo Total das Contas</td>
+                                <td id="comparativo_saldo_total">0.00</td>
+                            </tr>
+                            <tr>
+                                <td>Saldo Total das Faturas</td>
+                                <td id="comparativo_fatura_total">0.00</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Saldo após Faturas</strong></td>
+                                <td id="comparativo_saldo_apos_faturas" 
+                                    class="{% if saldo_apos_faturas < 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    0.00
+                                </td>
+                            </tr>
+                          </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h3 class="card-title">Despesas por Categoria</h3>
+            <div id="pieChart" style="height: 300px;"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+    var saldoForm = document.getElementById('saldoForm');
+    var faturaForm = document.getElementById('faturaForm');
+    var btnSalvar = document.getElementById('btnSalvar');
+
+    btnSalvar.addEventListener('click', function() {
+        saveToServer();
+    });
+
+    saldoForm.addEventListener('input', function() {
+        updateTotals();
+        updateComparativo();
+    });
+
+    faturaForm.addEventListener('input', function() {
+        updateTotals();
+        updateComparativo();
+    });
+
+    updateTotals();
+    updateComparativo();
+
+    // Gráfico de pizza
+    var ctx = document.getElementById('pieChart').getContext('2d');
+    var pieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Categoria 1', 'Categoria 2', 'Categoria 3'],
+            datasets: [{
+                label: 'Despesas por Categoria',
+                data: [10, 20, 30], // Substituir pelos valores reais
+                backgroundColor: ['#ff6384', '#36a2eb', '#ffce56']
+            }]
+        }
+    });
+});
+
+function updateTotals() {
+    var saldoTotal = calcularTotal('saldo_bradesco', 'saldo_itau', 'saldo_inter');
+    var faturaTotal = calcularTotal('fatura_bradesco', 'fatura_itau', 'fatura_inter');
+
+    document.getElementById('saldo_total').value = saldoTotal.toFixed(2);
+    document.getElementById('fatura_total').value = faturaTotal.toFixed(2);
+}
+
+function calcularTotal(...ids) {
+    return ids.reduce((total, id) => {
+        return total + (parseFloat(document.getElementById(id).value) || 0);
+    }, 0);
+}
+
+function updateComparativo() {
+    var saldoTotal = parseFloat(document.getElementById('saldo_total').value) || 0;
+    var faturaTotal = parseFloat(document.getElementById('fatura_total').value) || 0;
+    var saldoAposFaturas = saldoTotal - faturaTotal;
+
+    document.getElementById('comparativo_saldo_total').textContent = saldoTotal.toFixed(2);
+    document.getElementById('comparativo_fatura_total').textContent = faturaTotal.toFixed(2);
+    document.getElementById('comparativo_saldo_apos_faturas').textContent = saldoAposFaturas.toFixed(2);
+}
+
+function saveToServer() {
+    var data = {
+        saldo_bradesco: document.getElementById('saldo_bradesco').value,
+        saldo_itau: document.getElementById('saldo_itau').value,
+        saldo_inter: document.getElementById('saldo_inter').value,
+        fatura_bradesco: document.getElementById('fatura_bradesco').value,
+        fatura_itau: document.getElementById('fatura_itau').value,
+        fatura_inter: document.getElementById('fatura_inter').value,
+    };
+
+    fetch('/salvar-saldos-faturas/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: new URLSearchParams(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert('Dados salvos com sucesso!');
+        } else {
+            alert('Erro ao salvar os dados.');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao salvar os dados.');
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+window.addEventListener('beforeunload', saveToServer);
+
+
+
+        function loadFromLocalStorage() {
+            document.getElementById('saldo_bradesco').value = localStorage.getItem('saldo_bradesco') || 0;
+            document.getElementById('saldo_itau').value = localStorage.getItem('saldo_itau') || 0;
+            document.getElementById('saldo_inter').value = localStorage.getItem('saldo_inter') || 0;
+            document.getElementById('saldo_total').value = localStorage.getItem('saldo_total') || 0;
+
+            document.getElementById('fatura_bradesco').value = localStorage.getItem('fatura_bradesco') || 0;
+            document.getElementById('fatura_itau').value = localStorage.getItem('fatura_itau') || 0;
+            document.getElementById('fatura_inter').value = localStorage.getItem('fatura_inter') || 0;
+            document.getElementById('fatura_total').value = localStorage.getItem('fatura_total') || 0;
+        }
+
+        function updateComparativo() {
+            var saldoTotal = parseFloat(document.getElementById('saldo_total').value) || 0;
+            var faturaTotal = parseFloat(document.getElementById('fatura_total').value) || 0;
+            var saldoAposFaturas = saldoTotal - faturaTotal;
+
+            document.getElementById('comparativo_saldo_total').textContent = saldoTotal.toFixed(2);
+            document.getElementById('comparativo_fatura_total').textContent = faturaTotal.toFixed(2);
+            document.getElementById('comparativo_saldo_apos_faturas').textContent = saldoAposFaturas.toFixed(2);
+        }
+
+        saldoForm.addEventListener('input', function() {
+            var saldoBradesco = parseFloat(document.getElementById('saldo_bradesco').value) || 0;
+            var saldoItau = parseFloat(document.getElementById('saldo_itau').value) || 0;
+            var saldoInter = parseFloat(document.getElementById('saldo_inter').value) || 0;
+            var saldoTotal = saldoBradesco + saldoItau + saldoInter;
+
+            document.getElementById('saldo_total').value = saldoTotal.toFixed(2);
+            saveToLocalStorage();
+            updateComparativo();
+        });
+
+        faturaForm.addEventListener('input', function() {
+            var faturaBradesco = parseFloat(document.getElementById('fatura_bradesco').value) || 0;
+            var faturaItau = parseFloat(document.getElementById('fatura_itau').value) || 0;
+            var faturaInter = parseFloat(document.getElementById('fatura_inter').value) || 0;
+            var faturaTotal = faturaBradesco + faturaItau + faturaInter;
+
+            document.getElementById('fatura_total').value = faturaTotal.toFixed(2);
+            saveToLocalStorage();
+            updateComparativo();
+        });
+
+        loadFromLocalStorage();
+        updateComparativo();
+
+        // Gráfico de pizza
+        var ctx = document.getElementById('pieChart').getContext('2d');
+        var pieChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Categoria 1', 'Categoria 2', 'Categoria 3'],
+                datasets: [{
+                    label: 'Despesas por Categoria',
+                    data: [10, 20, 30], // Substituir pelos valores reais
+                    backgroundColor: ['#ff6384', '#36a2eb', '#ffce56']
+                }]
+            }
+        });
+    </script>
+{% endblock %}

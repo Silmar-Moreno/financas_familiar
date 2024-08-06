@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Resumo Financeiro - {{ mes }} {{ ano }}</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <table class="table">
+            <tr>
+                <th>Resumo</th>
+                <th>Valor (R$)</th>
+            </tr>
+            <tr>
+                <td>🟢 Entrou</td>
+                <td>R$ {{ entradas|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td>🔴 Saiu</td>
+                <td>R$ {{ saidas|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td><strong>Sobrou</strong></td>
+                <td><strong>R$ {{ saldo|floatformat:2 }}</strong></td>
+            </tr>
+        </table>
+    </div>
+    <div class="col-md-6">
+        <canvas id="grafico-pizza"></canvas>
+    </div>
+</div>
+
+<h2>Últimas Transações</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Data</th>
+            <th>Tipo</th>
+            <th>Descrição</th>
+            <th>Valor</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for transacao in transacoes %}
+        <tr>
+            <td>{{ transacao.data }}</td>
+            <td>{{ transacao.get_tipo_display }}</td>
+            <td>{{ transacao.descricao }}</td>
+            <td>R$ {{ transacao.valor|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<a href="{% url 'transacao_create' %}" class="btn btn-primary">Nova Transação</a>
+
+<script>
+    var ctx = document.getElementById('grafico-pizza').getContext('2d');
+    var myChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Entradas', 'Saídas'],
+            datasets: [{
+                data: [{{ entradas }}, {{ saidas }}],
+                backgroundColor: ['#28a745', '#dc3545']
+            }]
+        },
+        options: {
+            responsive: true,
+            title: {
+                display: true,
+                text: 'Distribuição de Entradas e Saídas'
+            }
+        }
+    });
+</script>
+{% endblock %}
